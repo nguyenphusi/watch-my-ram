@@ -79,7 +79,12 @@ The install may end with a note like `1 userConfig option not yet set`. That is 
 
 Installed at user scope, the mod loads in every `claude` session started afterwards: terminal sessions, sessions inside other tools' terminals, and the local session Claude Desktop runs for its Code tab, where the band is drawn too. In a session that is already open, type `/reload-plugins` or restart it.
 
-To update: `claude plugin marketplace update watch-my-ram`, then `/reload-plugins` in open sessions.
+To update, refresh the marketplace and then the plugin, and restart open sessions (or run `/reload-plugins` in them):
+
+```sh
+claude plugin marketplace update watch-my-ram
+claude plugin update watch-my-ram@watch-my-ram
+```
 
 ## Change the threshold
 
