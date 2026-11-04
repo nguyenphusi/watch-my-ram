@@ -6,7 +6,7 @@ A mod (plugin) for Claude Code on macOS. It warns early when the Mac is running 
 
 AI coding agents start dev servers, test runners and browsers, and often leave them behind: sessions stay open after their PR merges, several worktrees run tests at once, and processes outlive the agent that started them. On a 16 GB Mac that adds up to tens of GB of swap, heat and lag.
 
-watch-my-ram shows how much memory is in use and which sessions and processes hold it, so you know what to close. (Its working title was *orphanage*, after those left-behind processes.)
+watch-my-ram shows how much memory is in use and which sessions and processes hold it, so you know what to close.
 
 ## What the mod does
 
