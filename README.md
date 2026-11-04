@@ -28,8 +28,13 @@ watch-my-ram shows how much memory is in use and which sessions and processes ho
 
    The band measures once every 60 seconds, and all sessions share one cache file, `~/.claude/watch-my-ram/sample.json`. If the file is fresh (under 30 seconds old), a session reads it. If it is old, missing or broken, that session measures and writes it again. So even with 20 sessions open, the Mac runs `vm_stat` + `sysctl` only about once a minute.
 
-2. **The `/watch-my-ram` command** answers at once, without a Claude turn, and opens a **pane** named `watch-my-ram`.
-   - **View only:** the pane's single control is **Refresh** (on the first row). Nothing in it acts on a process or a session.
+2. **The `/watch-my-ram` command** answers at once, without a Claude turn. Where you see the answer depends on where you run it:
+   - **In a terminal**, the roll-call is printed in the chat. Claude can read it too, and the prompt box then offers a dim suggestion, *"Suggest what I could clean up from the watch-my-ram roll-call above. Advice only: …"*. Press Tab to take it, then Enter to send.
+   - **In Claude Desktop (and VS Code)**, it opens a **pane** named `watch-my-ram` with three buttons on its first row:
+     - **Refresh** fetches the tables again.
+     - **Ask Claude for suggestions** sends Claude the roll-call on screen and asks what you could close to free memory, biggest win first.
+     - **Close** closes the pane (Esc does too, once the pane has the focus).
+   - **Claude only advises.** Both the suggestion and the button ask for advice only: Claude is told not to run any command or stop, close, kill or delete anything. You decide what to close and do it yourself (or ask Claude to, in your own words, through the usual permission prompts).
    - **What it shows:**
      - A memory line, which follows the 60-second sample.
      - The live Claude sessions, numbered from 1: pid, folder or worktree, age, RAM, and whether the PR is MERGED. Sessions with a merged PR are drawn in a different colour, and the current session is bold and marked `(this session)`.
@@ -37,12 +42,12 @@ watch-my-ram shows how much memory is in use and which sessions and processes ho
      - Dev ports in LISTEN.
    - **The RAM column** is the memory footprint, the same figure as the MEM column of top and Activity Monitor, which counts compressed and swapped-out pages too. A value marked `*` is RSS, used when the footprint cannot be read.
    - **Dev ports:** a port counts as a dev port only when its process runs under a Claude session or inside a project folder (not `/`, `~`, `/Applications`, `~/Library` …).
-   - **When the tables are fetched:** only when the pane opens, when Refresh is pressed, and automatically at most once every 5 minutes while the pane is open.
+   - **When the tables are fetched:** only when you run the command, when Refresh is pressed, and automatically at most once every 5 minutes while the pane is open.
    - **PR state** is fetched in a batch: one `gh pr list` per repository (worktrees of the same repository share it), matched by branch name and remembered for 10 minutes.
    - **Drawing:** the session table shows at once (about 1 second); the PR column shows `…` and fills in when `gh` answers.
-   - **Layout:** the pane asks for a tall area. What does not fit can be scrolled: focus the pane (ctrl+x tab), then use ↑/↓ or the mouse wheel. The orphan-process and dev-port summary sits above the session table, so it is always visible.
-   - **Without a pane:** where no pane can be drawn (for example `claude -p "/watch-my-ram"`), the command returns the same content as a text table.
-   - **Cost:** `ps`, `footprint`, `lsof`, `git` and `gh` run only when the pane opens, when Refresh is pressed, or every 5 minutes while it is open; never in the 60-second loop.
+   - **Layout:** the pane asks for a tall area, and what does not fit scrolls. The orphan-process and dev-port summary sits above the session table, so it is always visible.
+   - **Headless:** `claude -p "/watch-my-ram"` prints the same roll-call as text.
+   - **Cost:** `ps`, `footprint`, `lsof`, `git` and `gh` run only when you run the command, when Refresh is pressed, or every 5 minutes while the pane is open; never in the 60-second loop.
 
 3. **Parallel test warning**: when Claude is about to run a test command (`vitest`, `npx vitest`, `playwright test`, `pnpm test*`, `pnpm -r test`, `npm run test*`, `yarn test` …) while another session is running vitest or playwright, the mod shows a toast naming that session's folder. Your command **still runs unchanged**. At most 1 toast every 5 minutes per session. `ps` runs only when the command matches a test command.
 

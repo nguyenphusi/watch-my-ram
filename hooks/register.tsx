@@ -18,9 +18,12 @@ import {
 } from './lib/processes'
 import type { Snapshot } from './lib/processes'
 import {
+  SUGGESTED_PROMPT,
+  askClaudePrompt,
   buildRollView,
   countPrs,
   formatRollCall,
+  rollCallContext,
   isFeatureBranch,
   parsePrList,
   parseRepoLines,
@@ -42,6 +45,8 @@ const COMMAND = 'watch-my-ram'
 const PANE = 'watch-my-ram'
 /** Rows asked for an inline pane: about a screenful of sessions. */
 const PANE_ROWS = 40
+/** How long after a chat roll-call the prompt suggestion waits, so the answer is drawn and the box is free. */
+const SUGGEST_DELAY_MS = 500
 /** How many PRs one `gh pr list` asks for; a full list falls back to `gh pr view` for unmatched branches. */
 const PR_LIST_LIMIT = 200
 const MEASURE_ARGV = ['/bin/sh', '-c', '/usr/bin/vm_stat; /usr/sbin/sysctl -n vm.swapusage hw.memsize'] as const
@@ -230,7 +235,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: COMMAND,
-      description: 'Roll-call pane: live Claude sessions, merged PRs, orphan dev processes, dev ports, memory in use',
+      description: 'Roll-call: live Claude sessions, merged PRs, orphan dev processes, dev ports, memory in use',
     })
     void refresh($)
     tick?.cancel()
@@ -263,15 +268,19 @@ export const register: Register = (on, options) => {
     )
   })
 
-  // Read only: the one control is Refresh; nothing here acts on a process.
+  // Read only: Refresh, Ask Claude (a prompt asking for advice) and Close; nothing here acts on a process.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Button, Text } = $.ui.resolve(e)
     const [sample, view] = await Promise.all([read($, sampleState), read($, rollState)])
     const isRed = sample !== null && isOver(sample, resolveThreshold(thresholdOption, sample.installedBytes))
+    const askClaude = (shown: RollView) =>
+      void $.prompt
+        .submit({ text: askClaudePrompt(formatRollCall(shown, memoryLine(sample, thresholdOption))), asUser: true })
+        .catch(() => undefined)
     const section = (part: RollView['sessions']) => (
       <Box flexDirection="column" marginTop={1}>
         <Text bold>{part.title}</Text>
-        {part === view?.sessions && (
+        {part === view?.sessions && e.surface === 'terminal' && (
           <Text dimColor wrap="truncate-end">
             If rows are cut off: focus the pane (ctrl+x tab), then ↑/↓ or the mouse wheel.
           </Text>
@@ -291,9 +300,11 @@ export const register: Register = (on, options) => {
 
     return (
       <Box flexDirection="column">
-        {/* Refresh sits on the first row: an inline pane shows only its top rows until scrolled. */}
-        <Box>
+        {/* The buttons sit on the first row: an inline pane shows only its top rows until scrolled. */}
+        <Box gap={1}>
           <Button key="refresh" label="Refresh" onPress={() => void refreshRoll($).catch(() => undefined)} />
+          {view !== null && <Button key="ask" label="Ask Claude for suggestions" onPress={() => askClaude(view)} />}
+          <Button key="close" label="Close" onPress={() => void $.ui.close({ id: PANE }).catch(() => undefined)} />
         </Box>
         {/* Wraps rather than truncates, so "alert above N GB" stays readable in a narrow pane. */}
         <Text wrap="wrap" color={isRed ? 'error' : undefined}>
@@ -332,20 +343,29 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: COMMAND }, async $ => {
-    // Ask for a tall inline pane; the surface gives what the layout spares and the rest scrolls.
-    const opened = await $.ui.open({ id: PANE, title: 'watch-my-ram', rows: PANE_ROWS })
-    if (opened.isPlaced) {
-      await Promise.all([refresh($, true), refreshRoll($)])
+    // Claude Desktop and VS Code get a pane with clickable buttons. A terminal
+    // gets the answer in the chat instead: many terminals pass no mouse clicks
+    // on, which leaves a pane's buttons dead there.
+    const surfaces = await $.session.surfaces()
+    if (surfaces.length > 0 && !surfaces.includes('terminal')) {
+      // Ask for a tall inline pane; the surface gives what the layout spares and the rest scrolls.
+      const opened = await $.ui.open({ id: PANE, title: 'watch-my-ram', rows: PANE_ROWS, closeOnEscape: true })
+      if (opened.isPlaced) {
+        await Promise.all([refresh($, true), refreshRoll($)])
 
-      return { text: 'Opened the watch-my-ram pane.' }
+        return { text: 'Opened the watch-my-ram pane. Close it with its Close button.' }
+      }
+      await $.ui.close({ id: PANE }).catch(() => undefined)
     }
-    // No pane here (`claude -p`, a surface that places none): answer in text.
-    await $.ui.close({ id: PANE }).catch(() => undefined)
+    // In the chat (a terminal, `claude -p`, a surface that places no pane).
     const [fresh, view] = await Promise.all([refresh($, true), refreshRoll($)])
     // A failed measure still has the last 60 s sample to show.
     const shown = fresh ?? (await read($, sampleState))
+    const rollCall = formatRollCall(view, memoryLine(shown, thresholdOption))
+    // Claude reads the roll-call too, so the suggested follow-up has something to work from.
+    $.clock.after(SUGGEST_DELAY_MS, () => void $.prompt.suggest({ text: SUGGESTED_PROMPT }).catch(() => undefined))
 
-    return { text: formatRollCall(view, memoryLine(shown, thresholdOption)) }
+    return { text: rollCall, context: [rollCallContext(rollCall)] }
   })
 
   // Warn only: whatever happens here, the command goes on exactly as given.

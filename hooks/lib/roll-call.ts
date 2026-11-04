@@ -296,3 +296,30 @@ export function formatRollCall(view: RollView, memory: string): string {
   // The short sections first, as in the pane, so the long session table comes last.
   return [memory, ...section(view.orphans), ...section(view.ports), ...section(view.sessions), '', ...view.notes].join('\n')
 }
+
+/** Offered dim in the empty prompt box after a roll-call in the chat; Tab takes it. */
+export const SUGGESTED_PROMPT =
+  'Suggest what I could clean up from the watch-my-ram roll-call above. Advice only: do not run, stop or close anything.'
+
+/** What Claude reads (and the person does not see) beside a roll-call shown in the chat. */
+export function rollCallContext(rollCall: string): string {
+  return [
+    'The user just ran /watch-my-ram. Its roll-call, for reference:',
+    '',
+    rollCall,
+    '',
+    'watch-my-ram only reads. If the user asks what to clean up, give advice only: do not run commands or stop, close, kill or delete anything unless they explicitly ask you to.',
+  ].join('\n')
+}
+
+/** The prompt the pane's "Ask Claude" button sends: the roll-call on screen and a request for advice only. */
+export function askClaudePrompt(rollCall: string): string {
+  return [
+    'Here is my current watch-my-ram roll-call:',
+    '',
+    rollCall,
+    '',
+    'Based only on this, suggest what I could close or stop to free memory, biggest win first. For each item, say what it is, roughly how much memory it would free, and how I would do it myself.',
+    'This is advice only: do not run any command, and do not stop, close, kill or delete anything.',
+  ].join('\n')
+}

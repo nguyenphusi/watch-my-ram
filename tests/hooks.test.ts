@@ -128,14 +128,22 @@ const NOW = 10_000_000
 
 type Engine = Parameters<TestBody>[0]
 
-/** The rest of the engine a session needs: env, the cache file, command and pane registrations. */
+/**
+ * The rest of the engine a session needs: env, the cache file, command and pane
+ * registrations, and the surfaces the session draws on. A placed pane means
+ * Claude Desktop (`desktop`); otherwise a headless run (no surface), unless
+ * `surfaces` says otherwise.
+ */
 function sessionHost(
   on: On,
   cache: { mtimeMs?: number; text?: string },
-  panes: { isPlaced: boolean; isOpen?: boolean; opens?: unknown[] } = { isPlaced: false },
+  panes: { isPlaced: boolean; isOpen?: boolean; opens?: unknown[]; surfaces?: ('terminal' | 'desktop')[] } = {
+    isPlaced: false,
+  },
   closes: string[] = [],
 ) {
   const writes: string[] = []
+  on('session.surfaces', () => ({ value: panes.surfaces ?? (panes.isPlaced ? ['desktop'] : []) }))
   mock.env(on, { HOME: '/Users/u' })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('command.register', () => ({ value: { command: 'watch-my-ram' } }))
@@ -344,11 +352,11 @@ test('band: a value stored by an older version is declined', async ($, on) => {
   expect((await bandText($, 'terminal'))?.text).toBe('watch-my-ram · measuring…')
 })
 
-test('/watch-my-ram with no pane answers with the text tables and closes the undrawn pane', async ($, on) => {
+test('/watch-my-ram where Desktop places no pane answers with the text tables and closes the undrawn pane', async ($, on) => {
   mock.clock(on, { now: NOW })
   const calls = host(on)
   const closes: string[] = []
-  sessionHost(on, {}, { isPlaced: false }, closes)
+  sessionHost(on, {}, { isPlaced: false, surfaces: ['desktop'] }, closes)
 
   await startSession($)
   const { text } = await runRollCall($)
@@ -382,15 +390,18 @@ test('/watch-my-ram still answers when ps fails', async ($, on) => {
   expect(text).toContain('Claude sessions: 0 ')
 })
 
-test('/watch-my-ram opens a read-only pane: tables, MERGED highlighted, one Refresh button', async ($, on) => {
+test('/watch-my-ram on Desktop opens a read-only pane: tables, MERGED highlighted, Refresh, Ask Claude, Close', async ($, on) => {
   mock.clock(on, { now: NOW })
   const calls = host(on)
-  sessionHost(on, {}, { isPlaced: true })
+  const opens: unknown[] = []
+  sessionHost(on, {}, { isPlaced: true, opens })
   const gathered = () => calls.filter(one => one.includes('echo ---')).length
 
   await startSession($)
   const { text } = await runRollCall($)
-  expect(text).toBe('Opened the watch-my-ram pane.')
+  expect(text).toBe('Opened the watch-my-ram pane. Close it with its Close button.')
+  // Esc closes it too, once the pane has the focus.
+  expect(opens).toEqual([expect.objectContaining({ closeOnEscape: true })])
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
@@ -400,7 +411,7 @@ test('/watch-my-ram opens a read-only pane: tables, MERGED highlighted, one Refr
     expect((await ui.find({ type: 'Text', text: /MERGED #12/ }))?.props.color).toBe('merged')
     expect((await ui.find({ type: 'Text', text: /this session/ }))?.props.bold).toBe(true)
     const buttons = await ui.findAll({ type: 'Button' })
-    expect(buttons.map(one => one.props.label)).toEqual(['Refresh'])
+    expect(buttons.map(one => one.props.label)).toEqual(['Refresh', 'Ask Claude for suggestions', 'Close'])
 
     // Refresh gathers the tables again.
     const before = gathered()
@@ -448,12 +459,12 @@ test('pane closed: the 60 s tick never gathers the tables', async ($, on) => {
   expect(calls.every(one => one.includes('vm_stat'))).toBe(true)
 })
 
-test('pane before any data: memory not measured yet, tables gathering, Refresh still there', async ($, on) => {
+test('pane before any data: memory not measured yet, tables gathering, Refresh and Close but nothing to ask yet', async ($, on) => {
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
     expect((await ui.find({ type: 'Text', text: /^Memory:/ }))?.text).toBe('Memory: not measured yet')
     expect(await ui.find({ type: 'Text', text: /Gathering/ })).toBeDefined()
-    expect((await ui.findAll({ type: 'Button' })).map(one => one.props.label)).toEqual(['Refresh'])
+    expect((await ui.findAll({ type: 'Button' })).map(one => one.props.label)).toEqual(['Refresh', 'Close'])
     await ui.unmount()
   }
 })
@@ -506,7 +517,7 @@ test('pane: the session table shows before gh answers, PR cells "…", then fill
   await ui.unmount()
 
   await clock.advance(1500)
-  expect((await running).text).toBe('Opened the watch-my-ram pane.')
+  expect((await running).text).toBe('Opened the watch-my-ram pane. Close it with its Close button.')
   ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /MERGED #12/ }))?.props.color).toBe('merged')
   expect(await ui.find({ type: 'Text', text: /…/ })).toBeUndefined()
@@ -526,7 +537,7 @@ test('PRs: one gh pr list per repository with a feature branch, not one call per
   expect(calls.filter(one => one.includes('--git-common-dir')).length).toBe(1)
 })
 
-test('31 sessions: the pane asks for rows, keeps orphans and ports above the table, and says how to scroll', async ($, on) => {
+test('31 sessions: the pane asks for rows, keeps orphans and ports above the table, and says how to scroll in a terminal', async ($, on) => {
   mock.clock(on, { now: NOW })
   host(on, PS_31)
   const opens: unknown[] = []
@@ -542,7 +553,8 @@ test('31 sessions: the pane asks for rows, keeps orphans and ports above the tab
     const at = (pattern: RegExp) => texts.findIndex(text => pattern.test(text))
     expect(at(/^Claude sessions: 31 /)).toBeGreaterThan(at(/^Orphan dev processes/))
     expect(at(/^Claude sessions: 31 /)).toBeGreaterThan(at(/Dev ports listening/))
-    expect(at(/ctrl\+x tab\), then ↑\/↓/)).toBe(at(/^Claude sessions: 31 /) + 1)
+    // The keyboard hint is a terminal's; Desktop scrolls the pane with the mouse.
+    expect(at(/ctrl\+x tab\), then ↑\/↓/)).toBe(surface === 'terminal' ? at(/^Claude sessions: 31 /) + 1 : -1)
     // Every session is in the tree; the engine scrolls what the frame cannot show.
     expect(texts.filter(text => /^ *\d+ +\d+ +\S+ +\d+M/.test(text)).length).toBe(31 + 2)
     await ui.unmount()
@@ -643,4 +655,78 @@ test('the index column is in the pane too, numbering rows in the order shown, st
     expect((await ui.find({ type: 'Text', text: /^2  600 .*MERGED #12/ }))?.props.color).toBe('merged')
     await ui.unmount()
   }
+})
+
+/** The engine's prompt box: records suggestions and submitted prompts. */
+function promptBox(on: On) {
+  const suggested: string[] = []
+  const submitted: { text: string; asUser?: boolean }[] = []
+  on('prompt.suggest', (_, e) => {
+    suggested.push(e.text)
+
+    return { isShown: true }
+  })
+  on('prompt.submit', (_, e) => {
+    submitted.push({ text: e.text, asUser: e.origin?.kind === 'plugin' ? e.origin.asUser : undefined })
+
+    return { text: e.text }
+  })
+
+  return { suggested, submitted }
+}
+
+test('/watch-my-ram in a terminal answers in the chat, gives Claude the roll-call, then suggests asking for advice', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  host(on)
+  const opens: unknown[] = []
+  // A pane could be placed, but a terminal gets the chat answer: its buttons may not take clicks.
+  sessionHost(on, {}, { isPlaced: true, opens, surfaces: ['terminal'] })
+  const box = promptBox(on)
+
+  await startSession($)
+  const answer = await runRollCall($)
+  expect(opens).toEqual([])
+  expect(answer.text).toContain('Memory: 34.6 GB in use')
+  expect(answer.text).toContain('MERGED #12  ~/work/other')
+
+  // Claude reads the same roll-call, with the advice-only rule beside it.
+  expect(answer.context).toHaveLength(1)
+  expect(answer.context?.[0]).toContain(answer.text)
+  expect(answer.context?.[0]).toContain('give advice only')
+
+  // The suggestion waits until the answer is drawn.
+  expect(box.suggested).toEqual([])
+  await clock.advance(500)
+  expect(box.suggested).toEqual([
+    'Suggest what I could clean up from the watch-my-ram roll-call above. Advice only: do not run, stop or close anything.',
+  ])
+  expect(box.submitted).toEqual([])
+})
+
+test('pane: Close closes it, and Ask Claude sends the roll-call shown with an advice-only request', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  const calls = host(on)
+  const closes: string[] = []
+  sessionHost(on, {}, { isPlaced: true }, closes)
+  const box = promptBox(on)
+
+  await startSession($)
+  await runRollCall($)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  const before = calls.length
+
+  await ui.press({ key: 'ask' })
+  expect(box.submitted).toHaveLength(1)
+  const [asked] = box.submitted
+  expect(asked?.asUser).toBe(true)
+  expect(asked?.text).toContain('Here is my current watch-my-ram roll-call:')
+  expect(asked?.text).toContain('Memory: 34.6 GB in use')
+  expect(asked?.text).toContain('MERGED #12  ~/work/other')
+  expect(asked?.text).toContain('This is advice only: do not run any command, and do not stop, close, kill or delete anything.')
+  // Asking runs nothing on the machine.
+  expect(calls.length).toBe(before)
+
+  await ui.press({ key: 'close' })
+  expect(closes).toEqual(['watch-my-ram'])
+  await ui.unmount()
 })
