@@ -8,6 +8,37 @@ AI coding agents start dev servers, test runners and browsers, and often leave t
 
 watch-my-ram shows how much memory is in use and which sessions and processes hold it, so you know what to close.
 
+## Screenshots
+
+Real macOS captures, with project paths and identifying details redacted.
+
+**Claude Desktop — session roll-call.** Refresh the report, ask Claude for advice, or close the pane.
+
+![Claude Desktop roll-call with memory usage, four sessions, and Refresh, Ask Claude for suggestions, and Close buttons](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-roll-call-cropped.png)
+
+**Memory band — below the alert threshold.**
+
+![Claude Desktop memory band showing 18.8 GB in use, below the automatic 20 GB alert threshold](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-memory-band-cropped.png)
+
+**Alert state — Claude Desktop and terminal.** The band turns red when RAM plus swap exceeds the threshold.
+
+![Red Claude Desktop memory band showing 38.9 GB in use, above the 20 GB alert threshold](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-alert-band.png)
+
+![Red Claude Code terminal memory band showing 38.8 GB in use, above the 20 GB alert threshold](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/terminal-alert-band.png)
+
+<details>
+<summary>Earlier roll-call layout: many sessions and merged PRs</summary>
+
+These captures show an earlier pane layout. The current terminal command prints its report in chat; the current Desktop pane adds **Ask Claude for suggestions** and **Close**, as shown above.
+
+![Earlier terminal roll-call pane showing 28 sessions and 10 merged PRs](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/terminal-alert-roll-call.png)
+
+![Earlier Desktop roll-call pane showing 29 sessions and 10 merged PRs](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-alert-roll-call.png)
+
+</details>
+
+Screenshots are hosted as [GitHub release attachments](https://github.com/nguyenphusi/watch-my-ram/releases/tag/readme-assets-2026-11-04), outside Git history. Keep those assets available when updating this README.
+
 ## What the mod does
 
 1. **A band above the prompt**, always shown:
