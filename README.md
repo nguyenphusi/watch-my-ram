@@ -4,11 +4,9 @@ A mod (plugin) for Claude Code on macOS. It warns early when the Mac is running 
 
 ## Why this exists
 
-AI coding agents are wonderful at starting things. Give each one a worktree and they spin up dev servers, test runners and headless browsers without a second thought. Tidying up afterwards is less their strength: a session finishes its PR and stays open for days, five worktrees run their test suites at the same moment, and a process outlives the agent that started it.
+AI coding agents start dev servers, test runners and browsers, and often leave them behind: sessions stay open after their PR merges, several worktrees run tests at once, and processes outlive the agent that started them. On a 16 GB Mac that adds up to tens of GB of swap, heat and lag.
 
-One afternoon a 16 GB Mac was carrying 22 GB of swap, ran hot, and lagged on every keystroke. Nothing was broken; the house was simply full of children nobody had come back for.
-
-So the project's working title was **orphanage**: a quiet place that keeps an eye on everything the agents brought into the world and forgot to pick up. It does not adopt anyone, and it never puts anyone down. It takes a headcount and taps you on the shoulder when the house gets crowded. The public name is plainer, because that is the part you will actually see: it watches your RAM.
+watch-my-ram shows how much memory is in use and which sessions and processes hold it, so you know what to close. (Its working title was *orphanage*, after those left-behind processes.)
 
 ## What the mod does
 
