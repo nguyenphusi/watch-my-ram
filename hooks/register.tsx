@@ -1,4 +1,4 @@
-// orphanage: warns when the Mac runs out of memory and shows who holds it.
+// watch-my-ram: warns when the Mac runs out of memory and shows who holds it.
 // It only reads (vm_stat, sysctl, ps, footprint, lsof, git, gh) and draws; it
 // never blocks, rewrites or stops a command, a process or a session.
 
@@ -38,8 +38,8 @@ import { canToast, isTestCommand } from './lib/test-command'
 
 type $ = EngineInterface
 
-const COMMAND = 'orphanage'
-const PANE = 'orphanage'
+const COMMAND = 'watch-my-ram'
+const PANE = 'watch-my-ram'
 /** Rows asked for an inline pane: about a screenful of sessions. */
 const PANE_ROWS = 40
 /** How many PRs one `gh pr list` asks for; a full list falls back to `gh pr view` for unmatched branches. */
@@ -47,8 +47,8 @@ const PR_LIST_LIMIT = 200
 const MEASURE_ARGV = ['/bin/sh', '-c', '/usr/bin/vm_stat; /usr/sbin/sysctl -n vm.swapusage hw.memsize'] as const
 
 // The shape tags decline what an earlier version stored, which a reload keeps.
-const sampleState = atom({ plugin: 'orphanage', key: 'sample' } as const, null, { shape: 'sample-2' })
-const rollState = atom({ plugin: 'orphanage', key: 'roll' } as const, null, { shape: 'roll-1' })
+const sampleState = atom({ plugin: 'watch-my-ram', key: 'sample' } as const, null, { shape: 'sample-2' })
+const rollState = atom({ plugin: 'watch-my-ram', key: 'roll' } as const, null, { shape: 'roll-1' })
 
 // Module state: a reload starts these over, which costs at most one extra
 // sample, toast or `gh` call. The sample and the tables live in `$.state`.
@@ -68,7 +68,7 @@ const knownPrs = new Map<string, PrState | null>()
 async function cacheFile($: $): Promise<string | undefined> {
   const home = await $.env.get('HOME')
 
-  return home === undefined ? undefined : `${home}/.claude/orphanage/sample.json`
+  return home === undefined ? undefined : `${home}/.claude/watch-my-ram/sample.json`
 }
 
 async function measure($: $, now: number): Promise<Sample | undefined> {
@@ -247,9 +247,9 @@ export const register: Register = (on, options) => {
     if (e.props.hasSurvey) return next(e)
     const { Text } = $.ui.resolve(e)
     const sample = await read($, sampleState)
-    if (sample === null) return <Text dimColor>orphanage · measuring…</Text>
+    if (sample === null) return <Text dimColor>watch-my-ram · measuring…</Text>
     const threshold = resolveThreshold(thresholdOption, sample.installedBytes)
-    const text = `orphanage · ${formatBand(sample, threshold)}`
+    const text = `watch-my-ram · ${formatBand(sample, threshold)}`
 
     // Short, and cut rather than wrapped where the terminal is narrower still.
     return isOver(sample, threshold) ? (
@@ -333,11 +333,11 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: COMMAND }, async $ => {
     // Ask for a tall inline pane; the surface gives what the layout spares and the rest scrolls.
-    const opened = await $.ui.open({ id: PANE, title: 'orphanage', rows: PANE_ROWS })
+    const opened = await $.ui.open({ id: PANE, title: 'watch-my-ram', rows: PANE_ROWS })
     if (opened.isPlaced) {
       await Promise.all([refresh($, true), refreshRoll($)])
 
-      return { text: 'Opened the orphanage pane.' }
+      return { text: 'Opened the watch-my-ram pane.' }
     }
     // No pane here (`claude -p`, a surface that places none): answer in text.
     await $.ui.close({ id: PANE }).catch(() => undefined)

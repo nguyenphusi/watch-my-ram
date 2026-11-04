@@ -272,7 +272,7 @@ export function buildRollView(input: RollInput): RollView {
     notes: [
       'RAM is memory footprint, as top MEM and Activity Monitor show it.',
       ...(hasRss ? ['* RSS: footprint could not be read; RSS leaves out compressed and swapped pages, so it reads low.'] : []),
-      'orphanage only reports; it never stops anything.',
+      'watch-my-ram only reports; it never stops anything.',
     ],
   }
 }

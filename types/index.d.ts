@@ -24,6 +24,6 @@ export type RollView = {
 
 declare module 'claude-code' {
   interface PluginState {
-    orphanage: { sample: Shaped<Sample | null>; roll: Shaped<RollView | null> }
+    'watch-my-ram': { sample: Shaped<Sample | null>; roll: Shaped<RollView | null> }
   }
 }

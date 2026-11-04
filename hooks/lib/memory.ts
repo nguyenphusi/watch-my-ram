@@ -133,7 +133,7 @@ export function formatUsage(sample: Sample, threshold: Threshold): string {
 }
 
 /**
- * The band's short form, about 60 characters (73 with the `orphanage · `
+ * The band's short form, about 60 characters (76 with the `watch-my-ram · `
  * prefix), so it fits beside what Claude Code draws on the same row:
  * `34.5 GB in use · RAM 12.9/16 + swap 21.6 · alert >20 (auto)`.
  * The pane and the text answer keep the long form (`formatUsage`).

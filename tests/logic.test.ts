@@ -120,7 +120,7 @@ describe('memory', () => {
     const sample = parseMeasurement(MEASUREMENT, 1)!
     const band = formatBand(sample, { gb: 20, isAuto: true })
     expect(band).toBe('34.6 GB in use · RAM 12.8/16 + swap 21.8 · alert >20 (auto)')
-    expect(`orphanage · ${band}`.length).toBeLessThanOrEqual(75)
+    expect(`watch-my-ram · ${band}`.length).toBeLessThanOrEqual(78)
     expect(formatBand(sample, { gb: 24.5, isAuto: false })).toBe('34.6 GB in use · RAM 12.8/16 + swap 21.8 · alert >24.5')
   })
 
@@ -318,7 +318,7 @@ describe('roll-call', () => {
         '',
         'RAM is memory footprint, as top MEM and Activity Monitor show it.',
         '* RSS: footprint could not be read; RSS leaves out compressed and swapped pages, so it reads low.',
-        'orphanage only reports; it never stops anything.',
+        'watch-my-ram only reports; it never stops anything.',
       ].join('\n'),
     )
   })

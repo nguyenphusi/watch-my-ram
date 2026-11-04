@@ -1,5 +1,5 @@
 {
-  "name": "orphanage",
+  "name": "watch-my-ram",
   "owner": { "name": "nguyenphusi" },
-  "plugins": [{ "name": "orphanage", "source": "./" }]
+  "plugins": [{ "name": "watch-my-ram", "source": "./" }]
 }

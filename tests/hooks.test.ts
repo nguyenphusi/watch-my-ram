@@ -14,7 +14,7 @@ const ran = (stdout: string, exitCode = 0): { value: ProcessRunResult } => ({
 
 /** Each session folder's repository (git common dir) and branch, as the repo shell run prints them. */
 const REPOS: Record<string, [repo: string, branch: string]> = {
-  '/Users/u/work/mine': ['/Users/u/src/orphanage/.git', 'main'],
+  '/Users/u/work/mine': ['/Users/u/src/watch-my-ram/.git', 'main'],
   '/Users/u/work/other': ['/Users/u/src/hub/.git', 'feat/x'],
   '/Users/u/work/desk': ['/Users/u/src/hub/.git', 'main'],
 }
@@ -95,7 +95,7 @@ function bash(on: On) {
 }
 
 const BAND = {
-  plugin: 'orphanage',
+  plugin: 'watch-my-ram',
   component: 'AbovePrompt',
   requestId: 'above-prompt',
   props: {
@@ -109,11 +109,11 @@ const BAND = {
 } as const
 
 const PANE = {
-  plugin: 'orphanage',
+  plugin: 'watch-my-ram',
   component: 'Pane',
-  requestId: 'orphanage',
+  requestId: 'watch-my-ram',
   props: {
-    title: 'orphanage',
+    title: 'watch-my-ram',
     isFocused: false,
     bodyColumns: 120,
     placement: 'dock',
@@ -138,9 +138,9 @@ function sessionHost(
   const writes: string[] = []
   mock.env(on, { HOME: '/Users/u' })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('command.register', () => ({ value: { command: 'orphanage' } }))
+  on('command.register', () => ({ value: { command: 'watch-my-ram' } }))
   on('fs.stat', (_, e) => {
-    expect(e.path).toBe('/Users/u/.claude/orphanage/sample.json')
+    expect(e.path).toBe('/Users/u/.claude/watch-my-ram/sample.json')
 
     return cache.mtimeMs === undefined
       ? { deny: 'ENOENT' }
@@ -165,7 +165,7 @@ function sessionHost(
   on('ui.panes', () => ({
     value:
       panes.isOpen === true
-        ? [{ id: 'orphanage', title: 'orphanage', isShown: true, isFocused: false, isPlaced: true }]
+        ? [{ id: 'watch-my-ram', title: 'watch-my-ram', isShown: true, isFocused: false, isPlaced: true }]
         : [],
   }))
 
@@ -181,9 +181,9 @@ async function bandText($: Engine, surface: 'terminal' | 'desktop') {
 }
 
 const startSession = ($: Engine) => $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-const runOrphanage = ($: Engine) =>
+const runRollCall = ($: Engine) =>
   $.command.run({
-    command: 'orphanage',
+    command: 'watch-my-ram',
     args: '',
     origin: { kind: 'composer' },
     presentation: { isFullscreen: true, columns: 160 },
@@ -317,7 +317,7 @@ test('band: automatic threshold (1.25 × 16 GB = 20), red above it, on terminal 
   seed(on)
   for (const surface of ['terminal', 'desktop'] as const) {
     const text = await bandText($, surface)
-    expect(text?.text).toBe('orphanage · 34.6 GB in use · RAM 12.8/16 + swap 21.8 · alert >20 (auto)')
+    expect(text?.text).toBe('watch-my-ram · 34.6 GB in use · RAM 12.8/16 + swap 21.8 · alert >20 (auto)')
     expect(text?.props.wrap).toBe('truncate-end')
     expect(text?.props.color).toBe('error')
     expect(text?.props.dimColor).toBeUndefined()
@@ -328,7 +328,7 @@ test('band: a threshold set in /config wins and drops "(auto)"', { options: { th
   seed(on)
   for (const surface of ['terminal', 'desktop'] as const) {
     const text = await bandText($, surface)
-    expect(text?.text).toBe('orphanage · 34.6 GB in use · RAM 12.8/16 + swap 21.8 · alert >40')
+    expect(text?.text).toBe('watch-my-ram · 34.6 GB in use · RAM 12.8/16 + swap 21.8 · alert >40')
     expect(text?.props.color).toBeUndefined()
     expect(text?.props.dimColor).toBe(true)
   }
@@ -341,18 +341,18 @@ test('band: 0 in /config means automatic', { options: { threshold_gb: 0 } }, asy
 
 test('band: a value stored by an older version is declined', async ($, on) => {
   on('state.get', () => ({ value: { value: { at: 1, ramBytes: 1, swapBytes: 1 }, version: 1 } }))
-  expect((await bandText($, 'terminal'))?.text).toBe('orphanage · measuring…')
+  expect((await bandText($, 'terminal'))?.text).toBe('watch-my-ram · measuring…')
 })
 
-test('/orphanage with no pane answers with the text tables and closes the undrawn pane', async ($, on) => {
+test('/watch-my-ram with no pane answers with the text tables and closes the undrawn pane', async ($, on) => {
   mock.clock(on, { now: NOW })
   const calls = host(on)
   const closes: string[] = []
   sessionHost(on, {}, { isPlaced: false }, closes)
 
   await startSession($)
-  const { text } = await runOrphanage($)
-  expect(closes).toEqual(['orphanage'])
+  const { text } = await runRollCall($)
+  expect(closes).toEqual(['watch-my-ram'])
 
   expect(text).toContain('Memory: 34.6 GB in use (RAM 12.8 of 16 GB + swap 21.8 GB) · alert above 20 GB (auto) · OVER')
   expect(text).toContain('MERGED #12  ~/work/other')
@@ -370,27 +370,27 @@ test('/orphanage with no pane answers with the text tables and closes the undraw
   expect(calls.filter(one => /^\S*gh /.test(one)).length).toBe(1)
 })
 
-test('/orphanage still answers when ps fails', async ($, on) => {
+test('/watch-my-ram still answers when ps fails', async ($, on) => {
   mock.clock(on, { now: NOW })
   sessionHost(on, {})
   on('process.run', (_, e) => (e.argv.join(' ').includes('vm_stat') ? ran(MEASUREMENT) : { deny: 'not available' }))
 
   await startSession($)
-  const { text } = await runOrphanage($)
+  const { text } = await runRollCall($)
 
   expect(text).toContain('Memory: 34.6 GB in use')
   expect(text).toContain('Claude sessions: 0 ')
 })
 
-test('/orphanage opens a read-only pane: tables, MERGED highlighted, one Refresh button', async ($, on) => {
+test('/watch-my-ram opens a read-only pane: tables, MERGED highlighted, one Refresh button', async ($, on) => {
   mock.clock(on, { now: NOW })
   const calls = host(on)
   sessionHost(on, {}, { isPlaced: true })
   const gathered = () => calls.filter(one => one.includes('echo ---')).length
 
   await startSession($)
-  const { text } = await runOrphanage($)
-  expect(text).toBe('Opened the orphanage pane.')
+  const { text } = await runRollCall($)
+  expect(text).toBe('Opened the watch-my-ram pane.')
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
@@ -418,7 +418,7 @@ test('pane open: tables refresh by themselves every 5 min, gh answers reused for
   const ghCalls = () => calls.filter(one => /^\S*gh /.test(one)).length
 
   await startSession($)
-  await runOrphanage($)
+  await runRollCall($)
   expect(gathered()).toBe(1)
   expect(ghCalls()).toBe(1)
 
@@ -474,7 +474,7 @@ test('two Refresh presses at once gather the tables once', async ($, on) => {
   const gathered = () => calls.filter(one => one.includes('echo ---')).length
 
   await startSession($)
-  await runOrphanage($)
+  await runRollCall($)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   const before = gathered()
   await Promise.all([ui.press({ key: 'refresh' }), ui.press({ key: 'refresh' })])
@@ -485,7 +485,7 @@ test('two Refresh presses at once gather the tables once', async ($, on) => {
 test('band: short enough to sit beside what Claude Code draws on its row', async ($, on) => {
   seed(on)
   const text = (await bandText($, 'terminal'))?.text ?? ''
-  expect(text.length).toBeLessThanOrEqual(75)
+  expect(text.length).toBeLessThanOrEqual(78)
 })
 
 test('pane: the session table shows before gh answers, PR cells "…", then filled', async ($, on) => {
@@ -494,7 +494,7 @@ test('pane: the session table shows before gh answers, PR cells "…", then fill
   sessionHost(on, {}, { isPlaced: true })
 
   await startSession($)
-  const running = runOrphanage($)
+  const running = runRollCall($)
   await clock.settle()
 
   // gh is still out: the table is drawn already, its PR cells waiting.
@@ -506,7 +506,7 @@ test('pane: the session table shows before gh answers, PR cells "…", then fill
   await ui.unmount()
 
   await clock.advance(1500)
-  expect((await running).text).toBe('Opened the orphanage pane.')
+  expect((await running).text).toBe('Opened the watch-my-ram pane.')
   ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /MERGED #12/ }))?.props.color).toBe('merged')
   expect(await ui.find({ type: 'Text', text: /…/ })).toBeUndefined()
@@ -519,7 +519,7 @@ test('PRs: one gh pr list per repository with a feature branch, not one call per
   sessionHost(on, {})
 
   await startSession($)
-  await runOrphanage($)
+  await runRollCall($)
 
   expect(calls.filter(one => /^\S*gh pr list /.test(one)).length).toBe(1)
   expect(calls.filter(one => /^\S*gh pr view /.test(one))).toEqual([])
@@ -533,8 +533,8 @@ test('31 sessions: the pane asks for rows, keeps orphans and ports above the tab
   sessionHost(on, {}, { isPlaced: true, opens })
 
   await startSession($)
-  await runOrphanage($)
-  expect(opens).toEqual([expect.objectContaining({ id: 'orphanage', rows: 40 })])
+  await runRollCall($)
+  expect(opens).toEqual([expect.objectContaining({ id: 'watch-my-ram', rows: 40 })])
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
@@ -556,7 +556,7 @@ const TWO_REPOS: Record<string, [repo: string, branch: string]> = {
   '/Users/u/work/desk': ['/r/hub', 'feat/y'],
 }
 
-/** gh per repo: the hub's list in the hub, the orphanage's own in its folder. */
+/** gh per repo: the hub's list in the hub, this mod's own repo in its folder. */
 const twoReposGh: GhAnswer = (argv, cwd) =>
   argv[2] !== 'list'
     ? ran('', 1)
@@ -568,7 +568,7 @@ test('PRs: one gh call per repository; two worktrees of one repo matched by thei
   sessionHost(on, {})
 
   await startSession($)
-  const { text } = await runOrphanage($)
+  const { text } = await runRollCall($)
 
   expect(calls.filter(one => /^\S*gh pr list /.test(one)).length).toBe(2)
   expect(text).toMatch(/MERGED #12 +~\/work\/other/)
@@ -584,9 +584,9 @@ test('PRs: a failed gh is not cached; the next refresh asks again', async ($, on
   const ghCalls = () => calls.filter(one => /^\S*gh pr list /.test(one)).length
 
   await startSession($)
-  expect((await runOrphanage($)).text).not.toContain('MERGED #12')
+  expect((await runRollCall($)).text).not.toContain('MERGED #12')
   isDown = false
-  expect((await runOrphanage($)).text).toContain('MERGED #12')
+  expect((await runRollCall($)).text).toContain('MERGED #12')
   expect(ghCalls()).toBe(2)
 })
 
@@ -597,7 +597,7 @@ test('PRs: a refresh within 10 min asks gh nothing and draws known PRs at once, 
   const ghCalls = () => calls.filter(one => /^\S*gh /.test(one)).length
 
   await startSession($)
-  const first = runOrphanage($)
+  const first = runRollCall($)
   await clock.advance(1500)
   await first
   expect(ghCalls()).toBe(1)
@@ -623,9 +623,9 @@ test('PRs: a list that hits its 200 limit falls back to gh pr view for an unmatc
   const views = () => calls.filter(one => /^\S*gh pr view /.test(one)).length
 
   await startSession($)
-  expect((await runOrphanage($)).text).toContain('MERGED #12  ~/work/other')
+  expect((await runRollCall($)).text).toContain('MERGED #12  ~/work/other')
   expect(views()).toBe(1)
-  await runOrphanage($)
+  await runRollCall($)
   expect(views()).toBe(1)
 })
 
@@ -635,7 +635,7 @@ test('the index column is in the pane too, numbering rows in the order shown, st
   sessionHost(on, {}, { isPlaced: true })
 
   await startSession($)
-  await runOrphanage($)
+  await runRollCall($)
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
     expect(await ui.find({ type: 'Text', text: /^#  PID  AGE/ })).toBeDefined()
