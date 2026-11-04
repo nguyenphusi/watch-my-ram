@@ -1,0 +1,19 @@
+{
+  "name": "orphanage",
+  "version": "0.1.0",
+  "description": "Warns when RAM + swap passes a threshold, lists live Claude sessions and orphan dev processes, and flags parallel test runs. Never blocks or kills.",
+  "author": { "name": "nguyenphusi", "url": "https://github.com/nguyenphusi" },
+  "homepage": "https://github.com/nguyenphusi/orphanage-claude-code-mod",
+  "repository": "https://github.com/nguyenphusi/orphanage-claude-code-mod",
+  "license": "MIT",
+  "keywords": ["memory", "swap", "macos", "sessions", "mod"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "threshold_gb": {
+      "type": "number",
+      "title": "Memory alert threshold (GB)",
+      "description": "The band turns red when RAM in use + swap used goes above this many GB. Leave empty for automatic (1.25 × installed RAM); set 0 to return to automatic later.",
+      "required": false
+    }
+  }
+}
