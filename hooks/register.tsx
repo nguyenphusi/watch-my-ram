@@ -62,6 +62,8 @@ let inFlight: Promise<Sample | undefined> | undefined
 let rollInFlight: Promise<RollView> | undefined
 let lastToastAt: number | undefined
 let tick: Timer | undefined
+/** Set by the band's Hide button on Desktop; `/watch-my-ram` shows the band again. */
+let isBandHidden = false
 /**
  * Per repository (git common dir): branch → PR as gh listed it at `at`;
  * `isFull` when the list hit its limit, `viewed` the branches asked alone since.
@@ -249,22 +251,35 @@ export const register: Register = (on, options) => {
   // drops the timers itself.
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey) return next(e)
-    const { Text } = $.ui.resolve(e)
+    if (e.props.hasSurvey || isBandHidden) return next(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
     const sample = await read($, sampleState)
-    if (sample === null) return <Text dimColor>watch-my-ram · measuring…</Text>
-    const threshold = resolveThreshold(thresholdOption, sample.installedBytes)
-    const text = `watch-my-ram · ${formatBand(sample, threshold)}`
-
+    const threshold = sample === null ? undefined : resolveThreshold(thresholdOption, sample.installedBytes)
     // Short, and cut rather than wrapped where the terminal is narrower still.
-    return isOver(sample, threshold) ? (
-      <Text color="error" wrap="truncate-end">
-        {text}
-      </Text>
-    ) : (
-      <Text dimColor wrap="truncate-end">
-        {text}
-      </Text>
+    const line =
+      sample === null || threshold === undefined ? (
+        <Text dimColor>watch-my-ram · measuring…</Text>
+      ) : isOver(sample, threshold) ? (
+        <Text color="error" wrap="truncate-end">
+          {`watch-my-ram · ${formatBand(sample, threshold)}`}
+        </Text>
+      ) : (
+        <Text dimColor wrap="truncate-end">
+          {`watch-my-ram · ${formatBand(sample, threshold)}`}
+        </Text>
+      )
+    // A terminal draws its own [-] beside the band to collapse it; Desktop draws none, so it gets Hide.
+    if (e.surface !== 'desktop') return line
+    const hide = () => {
+      isBandHidden = true
+      $.ui.invalidate('ui.render')
+    }
+
+    return (
+      <Box gap={1}>
+        <Box flexGrow={1}>{line}</Box>
+        <Button key="hide" label="Hide" onPress={hide} />
+      </Box>
     )
   })
 
@@ -343,6 +358,10 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: COMMAND }, async $ => {
+    if (isBandHidden) {
+      isBandHidden = false
+      $.ui.invalidate('ui.render')
+    }
     // Claude Desktop and VS Code get a pane with clickable buttons. A terminal
     // gets the answer in the chat instead: many terminals pass no mouse clicks
     // on, which leaves a pane's buttons dead there.

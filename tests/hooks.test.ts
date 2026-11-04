@@ -730,3 +730,29 @@ test('pane: Close closes it, and Ask Claude sends the roll-call shown with an ad
   expect(closes).toEqual(['watch-my-ram'])
   await ui.unmount()
 })
+
+test('band: Desktop gets a Hide button (a terminal has its own [-]); /watch-my-ram shows the band again', async ($, on) => {
+  mock.clock(on, { now: NOW })
+  host(on)
+  sessionHost(on, {}, { isPlaced: true })
+  // The engine beneath: with nothing handed to it, it draws an empty band.
+  on('ui.render', ($, e) => h($.ui.resolve(e).Box, {}) as never)
+  await startSession($)
+
+  // A terminal: the line alone.
+  const inTerminal = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await inTerminal.findAll({ type: 'Button' })).toEqual([])
+  await inTerminal.unmount()
+
+  // Desktop: the line and Hide.
+  const onDesktop = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect((await onDesktop.find({ type: 'Text' }))?.text).toContain('34.6 GB in use')
+  expect((await onDesktop.findAll({ type: 'Button' })).map(one => one.props.label)).toEqual(['Hide'])
+  await onDesktop.press({ key: 'hide' })
+  await onDesktop.unmount()
+
+  // Hidden, on every surface, until the command runs.
+  for (const surface of ['terminal', 'desktop'] as const) expect(await bandText($, surface)).toBeUndefined()
+  await runRollCall($)
+  expect((await bandText($, 'desktop'))?.text).toContain('34.6 GB in use')
+})

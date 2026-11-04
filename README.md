@@ -105,7 +105,7 @@ claude plugin marketplace remove watch-my-ram       # then forget the marketplac
 rm -r ~/.claude/watch-my-ram                        # optional: the shared memory sample
 ```
 
-To hide the band in one session only: press `[-]` at the end of the band (or ctrl+x ctrl+a).
+To hide the band in one session only: in a terminal, press `[-]` at the end of the band (or ctrl+x ctrl+a); in Claude Desktop, press **Hide** at the end of the band. Running `/watch-my-ram` shows it again.
 
 ## What the mod reads, and what it never does
 
