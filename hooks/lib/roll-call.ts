@@ -3,7 +3,7 @@
 // command hook gathers the inputs.
 
 import type { RollLine, RollView, Sample } from '../../types'
-import { formatUsage, isOver, resolveThreshold } from './memory'
+import { alertWord, formatUsage, resolveThreshold } from './memory'
 import type { Proc } from './processes'
 
 /** The roll-call tables refresh on their own at most this often while the pane is open. */
@@ -277,12 +277,12 @@ export function buildRollView(input: RollInput): RollView {
   }
 }
 
-/** `Memory: 32.9 GB in use (…) · alert above 20 GB (auto) · OVER` */
+/** `Memory: 32.9 GB in use (…) · macOS memory pressure warning · WARNING` */
 export function memoryLine(sample: Sample | undefined | null, option: unknown): string {
   if (sample === undefined || sample === null) return 'Memory: not measured yet'
   const threshold = resolveThreshold(option, sample.installedBytes)
 
-  return `Memory: ${formatUsage(sample, threshold)} · ${isOver(sample, threshold) ? 'OVER' : 'ok'}`
+  return `Memory: ${formatUsage(sample, threshold)} · ${alertWord(sample, threshold)}`
 }
 
 /** The text answer, where no pane can be drawn: the same lines as the pane. */

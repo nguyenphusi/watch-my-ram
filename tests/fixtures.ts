@@ -18,6 +18,12 @@ export const MEMSIZE_16 = '17179869184\n'
 /** vm_stat + swap + installed RAM: RAM 12.8 of 16 GB, swap 21.8 GB, 34.6 GB in use. */
 export const MEASUREMENT = VM_STAT + SWAP + MEMSIZE_16
 
+/** `sysctl kern.memorystatus_vm_pressure_level` at macOS's "warning" level. */
+export const PRESSURE_WARNING = 'kern.memorystatus_vm_pressure_level: 2\n'
+
+/** The full measurement as the mod runs it now: the same 34.6 GB, at pressure warning. */
+export const MEASUREMENT_WITH_PRESSURE = MEASUREMENT + PRESSURE_WARNING
+
 const DESKTOP_CLAUDE =
   '/Users/u/Library/Application Support/Claude/claude-code/2.1.317/claude.app/Contents/MacOS/claude'
 const CHROME = '/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'

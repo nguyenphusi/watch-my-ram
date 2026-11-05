@@ -2,12 +2,15 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import {
   GB,
+  alertLevel,
+  alertWord,
   formatBand,
   formatUsage,
   isFresh,
   isOver,
   parseInstalledBytes,
   parseMeasurement,
+  parsePressure,
   parseSample,
   parseSwapUsedBytes,
   parseVmStatRamBytes,
@@ -42,7 +45,19 @@ import {
   parseLsofListen,
 } from '../hooks/lib/roll-call'
 import { canToast, isTestCommand } from '../hooks/lib/test-command'
-import { FOOTPRINT, LSOF_CWD, LSOF_LISTEN, MEASUREMENT, MEMSIZE_16, PS, PS_ALONE, SWAP, VM_STAT } from './fixtures'
+import {
+  FOOTPRINT,
+  LSOF_CWD,
+  LSOF_LISTEN,
+  MEASUREMENT,
+  MEASUREMENT_WITH_PRESSURE,
+  MEMSIZE_16,
+  PRESSURE_WARNING,
+  PS,
+  PS_ALONE,
+  SWAP,
+  VM_STAT,
+} from './fixtures'
 
 describe('test command detection', () => {
   const matches = [
@@ -139,6 +154,45 @@ describe('memory', () => {
     expect(isOver(at(34.6), { gb: 40, isAuto: false })).toBe(false)
   })
 
+  test('pressure level from sysctl: 1, 2 or 4; anything else is unknown', () => {
+    expect(parsePressure(PRESSURE_WARNING)).toBe(2)
+    expect(parsePressure('kern.memorystatus_vm_pressure_level: 4')).toBe(4)
+    expect(parsePressure('kern.memorystatus_vm_pressure_level: 1')).toBe(1)
+    expect(parsePressure('kern.memorystatus_vm_pressure_level: 3')).toBeUndefined()
+    expect(parsePressure(MEASUREMENT)).toBeUndefined()
+    expect(parseMeasurement(MEASUREMENT_WITH_PRESSURE, 1)?.pressure).toBe(2)
+    expect(parseMeasurement(MEASUREMENT, 1)?.pressure).toBeUndefined()
+  })
+
+  test('automatic alert follows macOS pressure, not the GB total', () => {
+    const auto = { gb: 20, isAuto: true }
+    // 34.6 GB in use, far above 20 GB, yet macOS says normal: no alert.
+    const at = (pressure: 1 | 2 | 4) => ({ ...parseMeasurement(MEASUREMENT, 1)!, pressure })
+    expect(alertLevel(at(1), auto)).toBe('ok')
+    expect(alertLevel(at(2), auto)).toBe('warning')
+    expect(alertLevel(at(4), auto)).toBe('critical')
+    expect(alertWord(at(1), auto)).toBe('ok')
+    expect(alertWord(at(2), auto)).toBe('WARNING')
+    expect(alertWord(at(4), auto)).toBe('CRITICAL')
+    expect(formatBand(at(2), auto)).toBe('34.6 GB in use · RAM 12.8/16 + swap 21.8 · pressure warning')
+    expect(formatUsage(at(1), auto)).toBe('34.6 GB in use (RAM 12.8 of 16 GB + swap 21.8 GB) · macOS memory pressure normal')
+  })
+
+  test('a GB threshold from /config decides alone, whatever the pressure', () => {
+    const own = { gb: 40, isAuto: false }
+    const critical = { ...parseMeasurement(MEASUREMENT, 1)!, pressure: 4 as const }
+    expect(alertLevel(critical, own)).toBe('ok')
+    expect(formatBand(critical, own)).toBe('34.6 GB in use · RAM 12.8/16 + swap 21.8 · alert >40')
+    expect(alertLevel(critical, { gb: 30, isAuto: false })).toBe('critical')
+    expect(alertWord(critical, { gb: 30, isAuto: false })).toBe('OVER')
+  })
+
+  test('without a pressure reading the automatic GB threshold still alerts', () => {
+    const sample = parseMeasurement(MEASUREMENT, 1)!
+    expect(alertLevel(sample, { gb: 20, isAuto: true })).toBe('critical')
+    expect(alertWord(sample, { gb: 20, isAuto: true })).toBe('OVER')
+  })
+
   test('automatic threshold: 1.25 × installed RAM', () => {
     expect(resolveThreshold(undefined, 16 * GB)).toEqual({ gb: 20, isAuto: true })
     expect(resolveThreshold(undefined, 8 * GB)).toEqual({ gb: 10, isAuto: true })
@@ -170,6 +224,14 @@ describe('cache file', () => {
 
   test('broken or partial JSON is no sample', () => {
     expect(parseSample('{"at":1,"ramBytes":2,"swapBytes":3,"installedBytes":4}')).toEqual({
+      at: 1,
+      ramBytes: 2,
+      swapBytes: 3,
+      installedBytes: 4,
+    })
+    // The pressure level is kept when valid and dropped when not.
+    expect(parseSample('{"at":1,"ramBytes":2,"swapBytes":3,"installedBytes":4,"pressure":2}')?.pressure).toBe(2)
+    expect(parseSample('{"at":1,"ramBytes":2,"swapBytes":3,"installedBytes":4,"pressure":9}')).toEqual({
       at: 1,
       ramBytes: 2,
       swapBytes: 3,
