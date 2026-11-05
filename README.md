@@ -10,7 +10,7 @@ watch-my-ram shows how much memory is in use and which sessions and processes ho
 
 ## Screenshots
 
-Real macOS captures, with project paths and identifying details redacted.
+Real macOS captures, with project paths and identifying details redacted. They were taken before 0.3.0, so the band still ends in `alert >20 (auto)`; it now ends in `pressure normal`, `pressure warning` or `pressure critical` (see below).
 
 **Claude Desktop — session roll-call.** Refresh the report, ask Claude for advice, or close the pane.
 
@@ -20,7 +20,7 @@ Real macOS captures, with project paths and identifying details redacted.
 
 ![Claude Desktop memory band showing 18.8 GB in use, below the automatic 20 GB alert threshold](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-memory-band-cropped.png)
 
-**Alert state — Claude Desktop and terminal.** The band turns red when RAM plus swap exceeds the threshold.
+**Alert state — Claude Desktop and terminal.** Since 0.3.0 the band turns yellow when macOS reports memory pressure "warning" and red at "critical".
 
 ![Red Claude Desktop memory band showing 38.9 GB in use, above the 20 GB alert threshold](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-alert-band.png)
 
@@ -44,17 +44,22 @@ Screenshots are hosted as [GitHub release attachments](https://github.com/nguyen
 1. **A band above the prompt**, always shown:
 
    ```
-   watch-my-ram · 34.3 GB in use · RAM 12.9/16 + swap 21.4 · alert >20 (auto)
+   watch-my-ram · 22.2 GB in use · RAM 12.5/16 + swap 9.7 · pressure warning
    ```
 
-   This reads as follows. 34.3 GB of memory is in use. 12.9 GB of it is in physical RAM (the Mac has 16 GB) and 21.4 GB is in swap. The band turns red when the total goes above the **alert level** of 20 GB. That 20 is the alert threshold, not the Mac's capacity. The band is dim below the threshold and red above it.
+   This reads as follows. 22.2 GB of memory is in use: 12.5 GB in physical RAM (the Mac has 16 GB) and 9.7 GB in swap. The colour follows **macOS memory pressure**, the same level Activity Monitor's Memory Pressure graph shows: dim at *normal*, yellow at *warning*, red at *critical*.
 
-   The band is kept short (about 75 characters) so Claude Code's own text does not draw over it. The pane and the `/watch-my-ram` command use the full sentence: `34.3 GB in use (RAM 12.9 of 16 GB + swap 21.4 GB) · alert above 20 GB (auto)`.
+   Why pressure and not the GB total: swap that sits idle on disk costs nothing, and macOS is slow to give it back, so the total can stay high while the Mac feels fine. Pressure is macOS's own judgement of how hard it is working to find memory, so a coloured band means something real.
+
+   If you set a GB threshold yourself (see [Change the threshold](#change-the-threshold)), that threshold decides instead: the band reads `alert >24` and turns red above 24 GB, whatever the pressure. On a Mac that does not report a pressure level, the band falls back to the automatic GB threshold, 1.25 × installed RAM (`alert >20 (auto)` on 16 GB).
+
+   The band is kept short (about 75 characters) so Claude Code's own text does not draw over it. The pane and the `/watch-my-ram` command use the full sentence: `22.2 GB in use (RAM 12.5 of 16 GB + swap 9.7 GB) · macOS memory pressure warning · WARNING`.
 
    *Memory in use* is RAM in use plus swap used:
    - RAM in use: the active, wired and "occupied by compressor" pages from `vm_stat`, times the page size.
    - Swap used: from `sysctl vm.swapusage`.
    - Installed RAM: from `sysctl hw.memsize`, read in the same run.
+   - Pressure level: from `sysctl kern.memorystatus_vm_pressure_level` (1 normal, 2 warning, 4 critical), read in the same run.
    - Units: 1 GB = 1024³ bytes.
 
    The band measures once every 60 seconds, and all sessions share one cache file, `~/.claude/watch-my-ram/sample.json`. If the file is fresh (under 30 seconds old), a session reads it. If it is old, missing or broken, that session measures and writes it again. So even with 20 sessions open, the Mac runs `vm_stat` + `sysctl` only about once a minute.
@@ -106,7 +111,7 @@ claude plugin install watch-my-ram --marketplace nguyenphusi/watch-my-ram
 
 In the Claude Desktop app, where `/plugin` does not run: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `nguyenphusi/watch-my-ram`, then **Add plugin**.
 
-The install may end with a note like `1 userConfig option not yet set`. That is expected, not an error: the one option is the alert threshold, and leaving it unset means automatic.
+The install may end with a note like `1 userConfig option not yet set`. That is expected, not an error: the one option is the GB alert threshold, and leaving it unset means the band follows macOS memory pressure.
 
 Installed at user scope, the mod loads in every `claude` session started afterwards: terminal sessions, sessions inside other tools' terminals, and the local session Claude Desktop runs for its Code tab, where the band is drawn too. In a session that is already open, type `/reload-plugins` or restart it.
 
@@ -119,12 +124,12 @@ claude plugin update watch-my-ram@watch-my-ram
 
 ## Change the threshold
 
-The default is **automatic**: 1.25 × the Mac's installed RAM, rounded to one decimal. A 16 GB Mac gets 20 GB, and an 8 GB Mac gets 10 GB. The band shows `(auto)` while the automatic threshold is in use.
+By default there is no GB threshold: the band follows macOS memory pressure (yellow at warning, red at critical). Only on a Mac that reports no pressure level does it fall back to an automatic GB threshold, 1.25 × installed RAM (20 GB on a 16 GB Mac, 10 GB on an 8 GB Mac).
 
-To set a specific number:
+To alert on a fixed amount of RAM + swap instead, set a number of GB. The band then turns red above it and ignores pressure:
 
-- In a session: open `/config`, find the row **watch-my-ram › Memory alert threshold (GB)**, and enter a number of GB. The mod reloads with the new threshold, and the band changes on its next draw. Enter `0` to go back to automatic.
-- From a shell: `echo '{"threshold_gb":"24"}' | claude plugin configure watch-my-ram@watch-my-ram --values-stdin`. To go back to automatic: `echo '{"threshold_gb":"0"}' | claude plugin configure watch-my-ram@watch-my-ram --values-stdin` (an empty value `""` is treated as "no change").
+- In a session: open `/config`, find the row **watch-my-ram › Memory alert threshold (GB)**, and enter a number of GB. The mod reloads with the new threshold, and the band changes on its next draw. Enter `0` to go back to following memory pressure.
+- From a shell: `echo '{"threshold_gb":"24"}' | claude plugin configure watch-my-ram@watch-my-ram --values-stdin`. To go back to following memory pressure: `echo '{"threshold_gb":"0"}' | claude plugin configure watch-my-ram@watch-my-ram --values-stdin` (an empty value `""` is treated as "no change").
 
 ## Disable / uninstall
 
@@ -140,7 +145,7 @@ To hide the band in one session only: in a terminal, press `[-]` at the end of t
 
 ## What the mod reads, and what it never does
 
-- Reads: `vm_stat`, `sysctl -n vm.swapusage hw.memsize` (periodically); `ps` (when a test command matches, or when the `/watch-my-ram` tables are fetched); `footprint`, `lsof`, `git rev-parse` / `git branch --show-current`, `gh pr list` (plus `gh pr view` for a branch older than a repository's newest 200 PRs) only when the `/watch-my-ram` tables are fetched.
+- Reads: `vm_stat`, `sysctl -n vm.swapusage hw.memsize`, `sysctl kern.memorystatus_vm_pressure_level` (periodically); `ps` (when a test command matches, or when the `/watch-my-ram` tables are fetched); `footprint`, `lsof`, `git rev-parse` / `git branch --show-current`, `gh pr list` (plus `gh pr view` for a branch older than a repository's newest 200 PRs) only when the `/watch-my-ram` tables are fetched.
 - Writes: only `~/.claude/watch-my-ram/sample.json` (4 numbers).
 - Never: blocks or changes a Bash command, kills or closes a process or session, or prints another process's command-line arguments.
 

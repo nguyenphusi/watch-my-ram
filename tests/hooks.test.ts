@@ -6,7 +6,7 @@ import type { On, ProcessRunResult } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
-import { FOOTPRINT, LSOF_CWD, LSOF_LISTEN, MEASUREMENT, PS, PS_31, PS_ALONE } from './fixtures'
+import { FOOTPRINT, LSOF_CWD, LSOF_LISTEN, MEASUREMENT, MEASUREMENT_WITH_PRESSURE, PS, PS_31, PS_ALONE } from './fixtures'
 
 const ran = (stdout: string, exitCode = 0): { value: ProcessRunResult } => ({
   value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
@@ -198,10 +198,10 @@ const runRollCall = ($: Engine) =>
   })
 
 /** Seeds `$.state` as an earlier write would have left it. */
-const seed = (on: On) =>
+const seed = (on: On, sample: object = SAMPLE) =>
   on('state.get', (_, e) => ({
     value: {
-      value: e.key === 'sample' ? { shape: 'sample-2', value: SAMPLE } : { shape: 'roll-1', value: null },
+      value: e.key === 'sample' ? { shape: 'sample-2', value: sample } : { shape: 'roll-1', value: null },
       version: 1,
     },
   }))
@@ -345,6 +345,49 @@ test('band: a threshold set in /config wins and drops "(auto)"', { options: { th
 test('band: 0 in /config means automatic', { options: { threshold_gb: 0 } }, async ($, on) => {
   seed(on)
   expect((await bandText($, 'terminal'))?.text).toContain('alert >20 (auto)')
+})
+
+for (const [pressure, name, color] of [
+  [1, 'normal', undefined],
+  [2, 'warning', 'warning'],
+  [4, 'critical', 'error'],
+] as const) {
+  test(`band: macOS pressure ${name} decides the colour, whatever the GB total`, async ($, on) => {
+    seed(on, { ...SAMPLE, pressure })
+    for (const surface of ['terminal', 'desktop'] as const) {
+      const text = await bandText($, surface)
+      expect(text?.text).toBe(`watch-my-ram · 34.6 GB in use · RAM 12.8/16 + swap 21.8 · pressure ${name}`)
+      expect(text?.props.color).toBe(color)
+      expect(text?.props.dimColor).toBe(color === undefined ? true : undefined)
+    }
+  })
+}
+
+test('band: a GB threshold from /config overrides pressure', { options: { threshold_gb: 40 } }, async ($, on) => {
+  seed(on, { ...SAMPLE, pressure: 4 })
+  const text = await bandText($, 'terminal')
+  expect(text?.text).toBe('watch-my-ram · 34.6 GB in use · RAM 12.8/16 + swap 21.8 · alert >40')
+  expect(text?.props.color).toBeUndefined()
+})
+
+test('the measure reads the pressure level, and the band shows it', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  const calls: string[] = []
+  on('process.run', (_, e) => {
+    calls.push(e.argv.join(' '))
+
+    return ran(MEASUREMENT_WITH_PRESSURE)
+  })
+  sessionHost(on, {})
+
+  await startSession($)
+  await clock.settle()
+
+  expect(calls.length).toBe(1)
+  expect(calls[0]).toContain('kern.memorystatus_vm_pressure_level')
+  const text = await bandText($, 'terminal')
+  expect(text?.text).toContain('pressure warning')
+  expect(text?.props.color).toBe('warning')
 })
 
 test('band: a value stored by an older version is declined', async ($, on) => {

@@ -1,3 +1,6 @@
+/** macOS memory pressure level: 1 normal, 2 warning, 4 critical. */
+export type Pressure = 1 | 2 | 4
+
 /** One memory reading, shared between sessions through the cache file. */
 export type Sample = {
   /** When it was measured, milliseconds since the epoch. */
@@ -8,6 +11,8 @@ export type Sample = {
   swapBytes: number
   /** Installed RAM (`hw.memsize`), in bytes. */
   installedBytes: number
+  /** macOS memory pressure, when `kern.memorystatus_vm_pressure_level` was readable. */
+  pressure?: Pressure
 }
 
 /** One row of the roll-call: a session, an orphan or a port, ready to draw. */

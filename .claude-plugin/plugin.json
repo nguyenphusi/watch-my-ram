@@ -1,7 +1,7 @@
 {
   "name": "watch-my-ram",
-  "version": "0.2.1",
-  "description": "Warns when RAM + swap passes a threshold, lists live Claude sessions and orphan dev processes, and flags parallel test runs. Never blocks or kills.",
+  "version": "0.3.0",
+  "description": "Warns when macOS memory pressure rises (or RAM + swap passes your threshold), lists live Claude sessions and orphan dev processes, and flags parallel test runs. Never blocks or kills.",
   "author": { "name": "nguyenphusi", "url": "https://github.com/nguyenphusi" },
   "homepage": "https://github.com/nguyenphusi/watch-my-ram",
   "repository": "https://github.com/nguyenphusi/watch-my-ram",
@@ -12,7 +12,7 @@
     "threshold_gb": {
       "type": "number",
       "title": "Memory alert threshold (GB)",
-      "description": "The band turns red when RAM in use + swap used goes above this many GB. Leave empty for automatic (1.25 × installed RAM); set 0 to return to automatic later.",
+      "description": "Optional. When set, the band turns red when RAM in use + swap used goes above this many GB, instead of following macOS memory pressure. Leave empty (or set 0) to follow memory pressure.",
       "required": false
     }
   }

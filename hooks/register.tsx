@@ -6,7 +6,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { RollView, Sample } from '../types'
-import { SAMPLE_PERIOD_MS, formatBand, isFresh, isOver, parseMeasurement, parseSample, resolveThreshold } from './lib/memory'
+import { SAMPLE_PERIOD_MS, alertLevel, formatBand, isFresh, parseMeasurement, parseSample, resolveThreshold } from './lib/memory'
+import type { Level } from './lib/memory'
 import {
   PS_ARGV,
   claudeAbove,
@@ -49,7 +50,10 @@ const PANE_ROWS = 40
 const SUGGEST_DELAY_MS = 500
 /** How many PRs one `gh pr list` asks for; a full list falls back to `gh pr view` for unmatched branches. */
 const PR_LIST_LIMIT = 200
-const MEASURE_ARGV = ['/bin/sh', '-c', '/usr/bin/vm_stat; /usr/sbin/sysctl -n vm.swapusage hw.memsize'] as const
+const MEASURE_ARGV = ['/bin/sh', '-c', '/usr/bin/vm_stat; /usr/sbin/sysctl -n vm.swapusage hw.memsize; /usr/sbin/sysctl kern.memorystatus_vm_pressure_level'] as const
+
+/** Band and memory-line colour per alert level: yellow for warning, red for critical. */
+const LEVEL_COLOR = { warning: 'warning', critical: 'error' } as const satisfies Record<Exclude<Level, 'ok'>, string>
 
 // The shape tags decline what an earlier version stored, which a reload keeps.
 const sampleState = atom({ plugin: 'watch-my-ram', key: 'sample' } as const, null, { shape: 'sample-2' })
@@ -256,15 +260,16 @@ export const register: Register = (on, options) => {
     const sample = await read($, sampleState)
     const threshold = sample === null ? undefined : resolveThreshold(thresholdOption, sample.installedBytes)
     // Short, and cut rather than wrapped where the terminal is narrower still.
+    const level = sample === null || threshold === undefined ? undefined : alertLevel(sample, threshold)
     const line =
-      sample === null || threshold === undefined ? (
+      sample === null || threshold === undefined || level === undefined ? (
         <Text dimColor>watch-my-ram · measuring…</Text>
-      ) : isOver(sample, threshold) ? (
-        <Text color="error" wrap="truncate-end">
+      ) : level === 'ok' ? (
+        <Text dimColor wrap="truncate-end">
           {`watch-my-ram · ${formatBand(sample, threshold)}`}
         </Text>
       ) : (
-        <Text dimColor wrap="truncate-end">
+        <Text color={LEVEL_COLOR[level]} wrap="truncate-end">
           {`watch-my-ram · ${formatBand(sample, threshold)}`}
         </Text>
       )
@@ -287,7 +292,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Button, Text } = $.ui.resolve(e)
     const [sample, view] = await Promise.all([read($, sampleState), read($, rollState)])
-    const isRed = sample !== null && isOver(sample, resolveThreshold(thresholdOption, sample.installedBytes))
+    const level = sample === null ? 'ok' : alertLevel(sample, resolveThreshold(thresholdOption, sample.installedBytes))
     const askClaude = (shown: RollView) =>
       void $.prompt
         .submit({ text: askClaudePrompt(formatRollCall(shown, memoryLine(sample, thresholdOption))), asUser: true })
@@ -322,7 +327,7 @@ export const register: Register = (on, options) => {
           <Button key="close" label="Close" onPress={() => void $.ui.close({ id: PANE }).catch(() => undefined)} />
         </Box>
         {/* Wraps rather than truncates, so "alert above N GB" stays readable in a narrow pane. */}
-        <Text wrap="wrap" color={isRed ? 'error' : undefined}>
+        <Text wrap="wrap" color={level === 'ok' ? undefined : LEVEL_COLOR[level]}>
           {memoryLine(sample, thresholdOption)}
         </Text>
         {view === null ? (
