@@ -10,34 +10,17 @@ watch-my-ram shows how much memory is in use and which sessions and processes ho
 
 ## Screenshots
 
-Real macOS captures, with project paths and identifying details redacted. They were taken before 0.3.0, so the band still ends in `alert >20 (auto)`; it now ends in `pressure normal`, `pressure warning` or `pressure critical` (see below).
+Real captures of version 0.3.0 on macOS, with project paths redacted. The yellow text shows macOS reporting **warning** pressure at capture time. By default, colour follows memory pressure rather than the RAM + swap total: dim at normal, yellow at warning, red at critical.
 
 **Claude Desktop — session roll-call.** Refresh the report, ask Claude for advice, or close the pane.
 
-![Claude Desktop roll-call with memory usage, four sessions, and Refresh, Ask Claude for suggestions, and Close buttons](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-roll-call-cropped.png)
+![Claude Desktop roll-call showing macOS memory pressure warning, four sessions, and Refresh, Ask Claude for suggestions, and Close buttons](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-pressure-roll-call.png)
 
-**Memory band — below the alert threshold.**
+**Memory band — pressure warning.** RAM and swap remain visible alongside the pressure level.
 
-![Claude Desktop memory band showing 18.8 GB in use, below the automatic 20 GB alert threshold](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-memory-band-cropped.png)
+![Yellow Claude Desktop memory band showing 15.0 GB in use and pressure warning](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-pressure-band.png)
 
-**Alert state — Claude Desktop and terminal.** Since 0.3.0 the band turns yellow when macOS reports memory pressure "warning" and red at "critical".
-
-![Red Claude Desktop memory band showing 38.9 GB in use, above the 20 GB alert threshold](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-alert-band.png)
-
-![Red Claude Code terminal memory band showing 38.8 GB in use, above the 20 GB alert threshold](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/terminal-alert-band.png)
-
-<details>
-<summary>Earlier roll-call layout: many sessions and merged PRs</summary>
-
-These captures show an earlier pane layout. The current terminal command prints its report in chat; the current Desktop pane adds **Ask Claude for suggestions** and **Close**, as shown above.
-
-![Earlier terminal roll-call pane showing 28 sessions and 10 merged PRs](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/terminal-alert-roll-call.png)
-
-![Earlier Desktop roll-call pane showing 29 sessions and 10 merged PRs](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-04/desktop-alert-roll-call.png)
-
-</details>
-
-Screenshots are hosted as [GitHub release attachments](https://github.com/nguyenphusi/watch-my-ram/releases/tag/readme-assets-2026-11-04), outside Git history. Keep those assets available when updating this README.
+Screenshots are hosted as [GitHub release attachments](https://github.com/nguyenphusi/watch-my-ram/releases/tag/readme-assets-2026-11-05), outside Git history. Keep those assets available when updating this README.
 
 ## What the mod does
 
@@ -146,7 +129,7 @@ To hide the band in one session only: in a terminal, press `[-]` at the end of t
 ## What the mod reads, and what it never does
 
 - Reads: `vm_stat`, `sysctl -n vm.swapusage hw.memsize`, `sysctl kern.memorystatus_vm_pressure_level` (periodically); `ps` (when a test command matches, or when the `/watch-my-ram` tables are fetched); `footprint`, `lsof`, `git rev-parse` / `git branch --show-current`, `gh pr list` (plus `gh pr view` for a branch older than a repository's newest 200 PRs) only when the `/watch-my-ram` tables are fetched.
-- Writes: only `~/.claude/watch-my-ram/sample.json` (4 numbers).
+- Writes: only `~/.claude/watch-my-ram/sample.json` (4 numbers plus the optional pressure level).
 - Never: blocks or changes a Bash command, kills or closes a process or session, or prints another process's command-line arguments.
 
 ## Development
