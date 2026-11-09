@@ -1,6 +1,6 @@
 {
   "name": "watch-my-ram",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Warns when macOS memory pressure rises (or RAM + swap passes your threshold), lists live Claude sessions and orphan dev processes, and flags parallel test runs. Never blocks or kills.",
   "author": { "name": "nguyenphusi", "url": "https://github.com/nguyenphusi" },
   "homepage": "https://github.com/nguyenphusi/watch-my-ram",

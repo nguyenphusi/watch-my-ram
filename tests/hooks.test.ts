@@ -182,7 +182,7 @@ function sessionHost(
 
 async function bandText($: Engine, surface: 'terminal' | 'desktop') {
   const ui = await $.ui.mount({ ...BAND, surface })
-  const text = await ui.find({ type: 'Text' })
+  const text = await ui.find({ type: 'Text', text: /^watch-my-ram/ })
   await ui.unmount()
 
   return text
@@ -798,4 +798,16 @@ test('band: Desktop gets a Hide button (a terminal has its own [-]); /watch-my-r
   for (const surface of ['terminal', 'desktop'] as const) expect(await bandText($, surface)).toBeUndefined()
   await runRollCall($)
   expect((await bandText($, 'desktop'))?.text).toContain('34.6 GB in use')
+})
+
+test('band: the mascot follows pressure, as a text face on terminal and an animated SVG on desktop', async ($, on) => {
+  seed(on, { ...SAMPLE, pressure: 4 })
+  const terminal = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect((await terminal.find({ type: 'Text', text: /ﾟДﾟ/ }))?.props.color).toBe('error')
+  await terminal.unmount()
+  const desktop = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  const svg = await desktop.find({ type: 'Svg' })
+  expect(svg?.props.alt).toBe('RAM mascot, panicking')
+  expect(svg?.props.isInteractive).toBe(true)
+  await desktop.unmount()
 })
