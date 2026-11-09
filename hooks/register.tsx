@@ -8,6 +8,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { RollView, Sample } from '../types'
 import { SAMPLE_PERIOD_MS, alertLevel, formatBand, isFresh, parseMeasurement, parseSample, resolveThreshold } from './lib/memory'
 import type { Level } from './lib/memory'
+import { FRAME_MS, mascotAlt, mascotFrame, mascotSvg } from './lib/mascot'
 import {
   PS_ARGV,
   claudeAbove,
@@ -68,6 +69,8 @@ let lastToastAt: number | undefined
 let tick: Timer | undefined
 /** Set by the band's Hide button on Desktop; `/watch-my-ram` shows the band again. */
 let isBandHidden = false
+/** True while a terminal band has its next mascot frame scheduled, so redraws never stack timers. */
+let isFramePending = false
 /**
  * Per repository (git common dir): branch → PR as gh listed it at `at`;
  * `isFull` when the list hit its limit, `viewed` the branches asked alone since.
@@ -259,30 +262,77 @@ export const register: Register = (on, options) => {
     const { Box, Button, Text } = $.ui.resolve(e)
     const sample = await read($, sampleState)
     const threshold = sample === null ? undefined : resolveThreshold(thresholdOption, sample.installedBytes)
-    // Short, and cut rather than wrapped where the terminal is narrower still.
     const level = sample === null || threshold === undefined ? undefined : alertLevel(sample, threshold)
+    // The mascot's mood: calm while measuring too.
+    const mood = level ?? 'ok'
+    const color = mood === 'ok' ? undefined : LEVEL_COLOR[mood]
+    // Short, and cut rather than wrapped where the terminal is narrower still.
     const line =
-      sample === null || threshold === undefined || level === undefined ? (
+      sample === null || threshold === undefined ? (
         <Text dimColor>watch-my-ram · measuring…</Text>
-      ) : level === 'ok' ? (
-        <Text dimColor wrap="truncate-end">
-          {`watch-my-ram · ${formatBand(sample, threshold)}`}
-        </Text>
       ) : (
-        <Text color={LEVEL_COLOR[level]} wrap="truncate-end">
+        <Text color={color} dimColor={color === undefined ? true : undefined} wrap="truncate-end">
           {`watch-my-ram · ${formatBand(sample, threshold)}`}
         </Text>
       )
+
+    if (e.surface === 'terminal') {
+      // A terminal has no SVG: a text face, stepped by redrawing the band once a frame while it shows.
+      // A clock that fails leaves the face still on its first frame; the band itself always draws.
+      let now = 0
+      try {
+        if (!isFramePending) {
+          $.clock.after(FRAME_MS, () => {
+            isFramePending = false
+            $.ui.invalidate('ui.render')
+          })
+          isFramePending = true
+        }
+        now = await $.clock.now()
+      } catch {
+        // No clock: a still face.
+      }
+      const face = mascotFrame(mood, now)
+
+      return (
+        <Box gap={1}>
+          <Text color={color} dimColor={color === undefined ? true : undefined}>
+            {face}
+          </Text>
+          <Box flexGrow={1}>{line}</Box>
+        </Box>
+      )
+    }
+    // Desktop, VS Code and mobile animate the SVG themselves (SMIL), so no timer runs here.
+    const { Svg } = $.ui.resolve(e)
+    // Each child centred on its own: a row's alignItems alone left the SVG high and the text low on Desktop.
+    const mascot = (
+      <Box alignSelf="center">
+        <Svg source={mascotSvg(mood)} alt={mascotAlt(mood)} width={32} height={24} isInteractive />
+      </Box>
+    )
     // A terminal draws its own [-] beside the band to collapse it; Desktop draws none, so it gets Hide.
-    if (e.surface !== 'desktop') return line
+    if (e.surface !== 'desktop') {
+      return (
+        <Box gap={1} alignItems="center">
+          {mascot}
+          <Box flexGrow={1} alignSelf="center">
+            {line}
+          </Box>
+        </Box>
+      )
+    }
     const hide = () => {
       isBandHidden = true
       $.ui.invalidate('ui.render')
     }
 
     return (
-      <Box gap={1}>
-        <Box flexGrow={1}>{line}</Box>
+      <Box gap={1} alignItems="center">
+        {mascot}
+        <Box flexGrow={1} alignSelf="center">
+          {line}
+        </Box>
         <Button key="hide" label="Hide" onPress={hide} />
       </Box>
     )

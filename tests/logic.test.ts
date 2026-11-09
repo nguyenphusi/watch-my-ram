@@ -16,6 +16,7 @@ import {
   parseVmStatRamBytes,
   resolveThreshold,
 } from '../hooks/lib/memory'
+import { FRAME_MS, mascotAlt, mascotFrame, mascotSvg } from '../hooks/lib/mascot'
 import {
   ancestry,
   claudeSessions,
@@ -473,5 +474,27 @@ describe('toast limit', () => {
     expect(canToast(undefined, 0)).toBe(true)
     expect(canToast(0, 299_999)).toBe(false)
     expect(canToast(0, 300_000)).toBe(true)
+  })
+})
+
+describe('mascot', () => {
+  test('each level keeps one width across its frames, so the band never jumps', () => {
+    for (const level of ['ok', 'warning', 'critical'] as const) {
+      const widths = new Set(Array.from({ length: 10 }, (_, i) => mascotFrame(level, i * FRAME_MS).length))
+      expect(widths.size).toBe(1)
+    }
+  })
+
+  test('ok blinks once in five frames; critical shakes every frame', () => {
+    expect(mascotFrame('ok', 0)).toBe('(•‿•)')
+    expect(mascotFrame('ok', 4 * FRAME_MS)).toBe('(-‿-)')
+    expect(mascotFrame('critical', 0)).not.toBe(mascotFrame('critical', FRAME_MS))
+  })
+
+  test('the SVG is animated and labelled per level', () => {
+    for (const level of ['ok', 'warning', 'critical'] as const) {
+      expect(mascotSvg(level)).toMatch(/^<svg [^>]*>.*<animate.*<\/svg>$/)
+    }
+    expect(mascotAlt('warning')).toBe('RAM mascot, sweating')
   })
 })

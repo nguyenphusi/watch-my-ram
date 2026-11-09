@@ -32,6 +32,8 @@ Screenshots are hosted as [GitHub release attachments](https://github.com/nguyen
 
    This reads as follows. 22.2 GB of memory is in use: 12.5 GB in physical RAM (the Mac has 16 GB) and 9.7 GB in swap. The colour follows **macOS memory pressure**, the same level Activity Monitor's Memory Pressure graph shows: dim at *normal*, yellow at *warning*, red at *critical*.
 
+   A small mascot, a RAM stick, sits at the start of the band and acts out the level. At *normal* it floats and blinks, at *warning* it sweats, and at *critical* it shakes, flashes and steams. Claude Desktop and VS Code draw it as an animated picture. A terminal draws a text face instead (`(•‿•)` → `(°_°;)` → `(ﾟДﾟ)`), redrawn about once a second.
+
    Why pressure and not the GB total: swap that sits idle on disk costs nothing, and macOS is slow to give it back, so the total can stay high while the Mac feels fine. Pressure is macOS's own judgement of how hard it is working to find memory, so a coloured band means something real.
 
    If you set a GB threshold yourself (see [Change the threshold](#change-the-threshold)), that threshold decides instead: the band reads `alert >24` and turns red above 24 GB, whatever the pressure. On a Mac that does not report a pressure level, the band falls back to the automatic GB threshold, 1.25 × installed RAM (`alert >20 (auto)` on 16 GB).
