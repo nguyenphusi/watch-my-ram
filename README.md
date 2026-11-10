@@ -20,6 +20,10 @@ Real captures of version 0.3.0 on macOS, with project paths redacted. The yellow
 
 ![Yellow Claude Desktop memory band showing 15.0 GB in use and pressure warning](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-pressure-band.png)
 
+**Parallel test warning.** A toast names the session already running tests; your command still runs.
+
+![Claude Desktop toast from watch-my-ram saying tests are already running in another project folder and that yours will run anyway](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-parallel-test-toast.png)
+
 Screenshots are hosted as [GitHub release attachments](https://github.com/nguyenphusi/watch-my-ram/releases/tag/readme-assets-2026-11-05), outside Git history. Keep those assets available when updating this README.
 
 ## What the mod does
