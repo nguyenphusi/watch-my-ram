@@ -10,7 +10,7 @@ A Claude Code mod for macOS. It notices when your Mac runs low on memory, and sh
 
 ![macOS](https://img.shields.io/badge/macOS-only-1d1d1f?logo=apple&logoColor=white)
 ![Claude Code mod](https://img.shields.io/badge/Claude%20Code-mod-d97757)
-![Read-only](https://img.shields.io/badge/read--only-never%20kills-3fae6a)
+![Never kills or blocks](https://img.shields.io/badge/never-kills%20or%20blocks-3fae6a)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
 </div>
@@ -31,15 +31,24 @@ At the prompt of a Claude Code terminal session:
 
 Answer `y` to add the marketplace, then pick the **user** scope so every session loads the mod. In the Claude Desktop app, click **+** next to the prompt box → **Plugins** → **Add marketplace** with `nguyenphusi/watch-my-ram` → **Add plugin**. More options are in [Install details](#install-details).
 
-Requires macOS and Claude Code 2.1.287 or later. The GitHub CLI `gh` is optional (it fills the PR column).
+**Requirements:**
+- macOS (the mod reads `vm_stat`, `sysctl`, `footprint` and `lsof`).
+- Claude Code 2.1.287 or later, which runs mods (tested on 2.1.318).
+- Optional: the GitHub CLI `gh`, signed in, to fill the PR column of `/watch-my-ram`.
 
 ## What you get
 
-| | |
-|---|---|
-| **A band above the prompt.** Memory in use, RAM + swap, and macOS memory pressure. The mascot floats at *normal*, sweats at *warning*, and panics at *critical*. | ![Yellow memory band showing 15.0 GB in use and pressure warning](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-pressure-band.png) |
-| **`/watch-my-ram` roll-call.** Every live Claude session with its RAM, folder, age and whether its PR is merged, plus orphan dev processes and open dev ports. One button asks Claude what to close, as advice only. | ![Roll-call pane listing four sessions with Refresh, Ask Claude for suggestions and Close buttons](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-pressure-roll-call.png) |
-| **Parallel test warning.** A toast when Claude starts tests while another session is already running them. Your command still runs. | ![Toast saying tests are already running in another project folder and yours will run anyway](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-parallel-test-toast.png) |
+**A band above the prompt.** Memory in use, RAM + swap, and macOS memory pressure. The mascot floats at *normal*, sweats at *warning*, and panics at *critical*.
+
+![Yellow memory band showing 15.0 GB in use and pressure warning](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-pressure-band.png)
+
+**`/watch-my-ram` roll-call.** Every live Claude session with its RAM, folder, age and whether its PR is merged, plus orphan dev processes and open dev ports. One button asks Claude what to close, as advice only.
+
+![Roll-call pane listing four sessions with Refresh, Ask Claude for suggestions and Close buttons](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-pressure-roll-call.png)
+
+**Parallel test warning.** A toast when Claude starts tests while another session is already running them. Your command still runs.
+
+![Toast saying tests are already running in another project folder and yours will run anyway](https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/desktop-parallel-test-toast.png)
 
 The mascot's three moods:
 
@@ -57,8 +66,8 @@ Yes. watch-my-ram **only reads and warns**.
 - **It never** kills or closes a process or session, blocks or changes a command you or Claude run, or prints another process's command-line arguments.
 - **It writes one file:** `~/.claude/watch-my-ram/sample.json`, holding four numbers and the pressure level.
 - **Every command it runs is read-only:** `vm_stat`, `sysctl`, `ps`, `lsof`, `footprint`, `git rev-parse` / `git branch --show-current`, and `gh pr list` / `gh pr view`. You can check this in [`hooks/register.tsx`](hooks/register.tsx).
-- **Network:** only `gh`, using your own sign-in, to read PR states for the roll-call, and only when you open the roll-call.
-- **Claude only advises.** The "Ask Claude for suggestions" button and the terminal suggestion send the roll-call to Claude and tell it not to run, stop, close, kill or delete anything. Anything you then ask Claude to do still goes through the normal permission prompts.
+- **Network:** the mod itself only calls `gh`, using your own sign-in, to read PR states, and only when the roll-call is fetched.
+- **What reaches Claude, and only when you choose:** pressing "Ask Claude for suggestions", or sending the terminal suggestion, sends the roll-call on screen to Claude as a normal chat message: session folders, PIDs, RAM figures, ports and PR states. Claude is told not to run, stop, close, kill or delete anything. Anything you then ask Claude to do still goes through the normal permission prompts.
 - **Cheap to run:** even with 20 sessions open, the Mac measures memory about once a minute (see below).
 
 ## How it works
@@ -189,7 +198,7 @@ claude plugin test .
 claude --plugin-dir .    # a test session that loads the mod from this folder
 ```
 
-Pure logic lives in `hooks/lib/` (with unit tests in `tests/`); `hooks/register.tsx` only wires the hooks together. The mascot SVGs in `assets/` are exported from `hooks/lib/mascot.ts`.
+Pure logic lives in `hooks/lib/` (with unit tests in `tests/`); `hooks/register.tsx` only wires the hooks together. The mascot SVGs in `assets/` are generated from `hooks/lib/mascot.ts`: after changing the mascot, run `node scripts/export-mascot-svgs.mts` (Node 23.6+), and `node scripts/export-mascot-svgs.mts --check` to confirm they are up to date.
 
 Screenshots are real captures of version 0.3.0 on macOS, with project paths redacted, hosted as [GitHub release attachments](https://github.com/nguyenphusi/watch-my-ram/releases/tag/readme-assets-2026-11-05) outside Git history. Keep those assets available when updating this README.
 
