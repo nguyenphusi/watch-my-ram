@@ -2,3 +2,6 @@ node_modules/
 .DS_Store
 # Written by the Claude Code engine when it loads the mod
 .claude-plugin/types/
+
+# Local plans, reports and launch drafts (not part of the mod)
+plans/
