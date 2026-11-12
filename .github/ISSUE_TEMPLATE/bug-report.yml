@@ -1,0 +1,54 @@
+name: Bug report
+description: Something in watch-my-ram is wrong or broken
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a Claude Code session
+        2. Run /watch-my-ram
+        3. ...
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and Mac model
+      placeholder: macOS 26.1, MacBook Air M2, 16 GB
+    validations:
+      required: true
+  - type: input
+    id: claude-code
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where do you run it?
+      multiple: true
+      options:
+        - Terminal
+        - Claude Desktop
+        - VS Code
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: watch-my-ram version
+      description: Shown by `/plugin` in Claude Code
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Please remove private folder names or paths before pasting a roll-call.

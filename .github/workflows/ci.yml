@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 23.6+ runs the .mts mascot export script without a build step
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate the plugin manifest
+        run: claude plugin validate .
+
+      - name: Run tests
+        run: claude plugin test .
+
+      - name: Check mascot SVGs are up to date
+        run: node scripts/export-mascot-svgs.mts --check
