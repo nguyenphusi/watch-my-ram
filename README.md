@@ -193,12 +193,16 @@ rm -r ~/.claude/watch-my-ram                        # optional: the shared memor
 ## Development
 
 ```sh
-claude plugin validate .
+claude plugin validate . --profile directory --strict
 claude plugin test .
+node scripts/export-mascot-svgs.mts --check
+npx -p typescript tsc --noEmit -p .   # type check, see below
 claude --plugin-dir .    # a test session that loads the mod from this folder
 ```
 
-Pure logic lives in `hooks/lib/` (with unit tests in `tests/`); `hooks/register.tsx` only wires the hooks together. The mascot SVGs in `assets/` are generated from `hooks/lib/mascot.ts`: after changing the mascot, run `node scripts/export-mascot-svgs.mts` (Node 23.6+), and `node scripts/export-mascot-svgs.mts --check` to confirm they are up to date.
+CI runs the first three on every pull request, every push to `main` and once a week, against the latest Claude Code. The type check runs only locally: it needs the type files that Claude Code writes to `.claude-plugin/types/` when a signed-in session loads the mod, so start `claude --plugin-dir .` once first. See [CONTRIBUTING.md](CONTRIBUTING.md) to send a change.
+
+Pure logic lives in `hooks/lib/` (with unit tests in `tests/`); `hooks/register.tsx` only wires the hooks together. The mascot SVGs in `assets/` are generated from `hooks/lib/mascot.ts`: after changing the mascot, run `node scripts/export-mascot-svgs.mts` (Node 23.6+) and commit the new SVGs. The plugin icon `.claude-plugin/icon.png` is a 512 px render of `assets/mascot-normal.svg`.
 
 Screenshots are real captures of version 0.3.0 on macOS, with project paths redacted, hosted as [GitHub release attachments](https://github.com/nguyenphusi/watch-my-ram/releases/tag/readme-assets-2026-11-05) outside Git history. Keep those assets available when updating this README.
 

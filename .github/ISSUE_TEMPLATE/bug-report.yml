@@ -47,6 +47,8 @@ body:
     attributes:
       label: watch-my-ram version
       description: Shown by `/plugin` in Claude Code
+    validations:
+      required: true
   - type: textarea
     id: extra
     attributes:
