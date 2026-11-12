@@ -13,8 +13,6 @@ A Claude Code mod for macOS. It notices when your Mac runs low on memory, and sh
 ![Never kills or blocks](https://img.shields.io/badge/never-kills%20or%20blocks-3fae6a)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-<img src="https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/demo-loop.gif" width="480" alt="Demo: memory climbs from normal to critical as sessions pile up, the mascot panics, Claude suggests closing the two merged sessions, and memory drops back to normal">
-
 </div>
 
 ## Why this exists
@@ -22,6 +20,8 @@ A Claude Code mod for macOS. It notices when your Mac runs low on memory, and sh
 AI coding agents start dev servers, test runners and browsers, and often leave them behind: sessions stay open after their PR merges, several worktrees run tests at once, and processes outlive the agent that started them. On a 16 GB Mac that adds up to tens of GB of swap, heat and lag.
 
 watch-my-ram shows how much memory is in use and which sessions and processes hold it, so you know what to close. **You** decide what to close; the mod never does.
+
+<p align="center"><img src="https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/demo-loop.gif" width="480" alt="Demo: memory climbs from normal to critical as sessions pile up, the mascot panics, Claude suggests closing the two merged sessions, and memory drops back to normal"></p>
 
 ## Install
 
