@@ -1,0 +1,17 @@
+name: Feature request
+description: Suggest an idea for watch-my-ram
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+      description: Note that watch-my-ram only reads and warns. It never kills, closes or blocks anything.
+    validations:
+      required: true

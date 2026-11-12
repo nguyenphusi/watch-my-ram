@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Weekly run against the newest Claude Code, so a release that breaks the mod
+  # shows up even in a week with no pushes
+  schedule:
+    - cron: '0 2 * * 1' # Mondays 02:00 UTC
+  # Lets you start a run by hand from the Actions tab or with `gh workflow run ci.yml`
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new push to the same branch or PR cancels the run it replaces
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 23.6+ runs the .mts mascot export script without a build step
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Deliberately unpinned: users auto-update Claude Code, so CI follows the latest release
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Show Claude Code version
+        run: claude --version
+
+      # --strict fails on warnings too; --profile directory adds the plugin directory's checks
+      - name: Validate the plugin
+        run: claude plugin validate . --profile directory --strict
+
+      - name: Run tests
+        run: claude plugin test .
+
+      - name: Check mascot SVGs are up to date
+        run: node scripts/export-mascot-svgs.mts --check

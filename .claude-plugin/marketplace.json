@@ -1,5 +1,8 @@
 {
   "name": "watch-my-ram",
   "owner": { "name": "nguyenphusi" },
+  "metadata": {
+    "description": "watch-my-ram: a Claude Code mod for macOS that warns when memory pressure rises and shows which sessions and processes hold the RAM."
+  },
   "plugins": [{ "name": "watch-my-ram", "source": "./" }]
 }
