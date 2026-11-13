@@ -21,6 +21,8 @@ AI coding agents start dev servers, test runners and browsers, and often leave t
 
 watch-my-ram shows how much memory is in use and which sessions and processes hold it, so you know what to close. **You** decide what to close; the mod never does.
 
+<p align="center"><img src="https://github.com/nguyenphusi/watch-my-ram/releases/download/readme-assets-2026-11-05/demo-loop.gif" width="480" alt="Demo: memory climbs from normal to critical as sessions pile up, the mascot panics, Claude suggests closing the two merged sessions, and memory drops back to normal"></p>
+
 ## Install
 
 At the prompt of a Claude Code terminal session:
